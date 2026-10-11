@@ -7,7 +7,6 @@ var cluster = require('cluster');
 var async = require('async');
 var extend = require('extend');
 
-var PoolLogger = require('log4js');
 var CliListener = require('./libs/cliListener.js');
 var PoolWorker = require('./libs/poolWorker.js');
 var PaymentProcessor = require('./libs/paymentProcessor.js');
@@ -18,15 +17,27 @@ var algos = require('merged-pooler/lib/algoProperties.js');
 
 JSON.minify = JSON.minify || require("node-json-minify");
 
+var configLoader = require('./libs/configLoader.js');
+var StructuredLogger = require('./libs/structuredLogger.js');
+
 if (!fs.existsSync('config.json')){
     console.log('config.json file does not exist. Read the installation/setup instructions.');
     return;
 }
 
-var portalConfig = JSON.parse(JSON.minify(fs.readFileSync("config.json", {encoding: 'utf8'})));
+var portalConfig = configLoader.loadConfig('config.json');
+
 var poolConfigs;
 
-var logger = PoolLogger.getLogger();
+// Configure structured logger
+var loggerConfig = {
+    logLevel: portalConfig.logLevel || 'debug',
+    logColors: portalConfig.logColors !== false,
+    jsonOutput: portalConfig.logJson === true,
+    logFile: portalConfig.logFile || null
+};
+
+var logger = new StructuredLogger(loggerConfig);
 
 logger.info('New Relic');
 try {

@@ -1,0 +1,62 @@
+{
+    "env": {
+        "node": true,
+        "es2021": true,
+        "jest": true
+    },
+    "extends": [
+        "eslint:recommended"
+    ],
+    "parserOptions": {
+        "ecmaVersion": "latest",
+        "sourceType": "commonjs"
+    },
+    "rules": {
+        "indent": ["error", 4],
+        "linebreak-style": ["error", "unix"],
+        "quotes": ["error", "single"],
+        "semi": ["error", "always"],
+        "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+        "no-console": "off",
+        "no-constant-condition": "warn",
+        "no-empty": ["error", { "allowEmptyCatch": true }],
+        "eqeqeq": ["error", "always"],
+        "curly": ["error", "all"],
+        "no-eval": "error",
+        "no-implied-eval": "error",
+        "no-new-func": "error",
+        "no-script-url": "error",
+        "no-self-compare": "error",
+        "no-sequences": "error",
+        "no-throw-literal": "error",
+        "no-unused-expressions": "error",
+        "no-void": "error",
+        "prefer-const": "error",
+        "no-var": "error",
+        "object-shorthand": "error",
+        "prefer-arrow-callback": "error",
+        "prefer-template": "error"
+    },
+    "ignorePatterns": [
+        "node_modules/**",
+        "website/**",
+        "scripts/**",
+        "coverage/**",
+        "multipool/**",
+        "aux_configs/**",
+        "pool_configs/**",
+        "coins/**",
+        "libs/**",
+        "init.js",
+        "*.min.js"
+    ],
+    "overrides": [
+        {
+            "files": ["tests/**/*.js", "*.js"],
+            "excludedFiles": ["libs/**", "init.js"],
+            "rules": {
+                "linebreak-style": "off"
+            }
+        }
+    ]
+}

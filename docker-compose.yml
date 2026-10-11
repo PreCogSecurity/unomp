@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: unomp-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis-data:/data
+    networks:
+      - unomp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  unomp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: unomp
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warning
+      - LOG_JSON=true
+      - LOG_COLORS=false
+      - CLI_PORT=17117
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - WEBSITE_ENABLED=true
+      - WEBSITE_HOST=0.0.0.0
+      - WEBSITE_PORT=80
+      - WEBSITE_SITE_TITLE=UNOMP
+      - WEBSITE_STRATUM_HOST=${STRATUM_HOST:-localhost}
+      - WEBSITE_ADMIN_ENABLED=true
+      - WEBSITE_ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - CLUSTERING_ENABLED=true
+      - CLUSTERING_FORKS=auto
+    ports:
+      - "80:80"
+      - "17117:17117"
+      # Stratum ports - add as needed per pool config
+      # - "3032:3032"
+      # - "3333:3333"
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./pool_configs:/app/pool_configs:ro
+      - ./coins:/app/coins:ro
+      - ./website:/app/website:ro
+      - unomp-logs:/app/logs
+    networks:
+      - unomp-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Redis Commander for debugging
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest
+    container_name: unomp-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-}
+      - HTTP_USER=${REDIS_COMMANDER_USER:-admin}
+      - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-}
+    ports:
+      - "8081:8081"
+    networks:
+      - unomp-network
+    depends_on:
+      - redis
+    profiles:
+      - debug
+
+volumes:
+  redis-data:
+    driver: local
+  unomp-logs:
+    driver: local
+
+networks:
+  unomp-network:
+    driver: bridge

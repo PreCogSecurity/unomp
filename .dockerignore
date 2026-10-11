@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Test
+tests/
+coverage/
+.nyc_output/
+
+# CI/CD
+.github/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Config (use mounted volumes instead)
+config.json
+.env
+.env.local
+
+# Documentation
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+CREDITS.md
+
+# Scripts
+scripts/
+
+# Website source (mounted as volume)
+website/

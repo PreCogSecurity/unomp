@@ -15,6 +15,7 @@ var Stratum = require('merged-pooler');
 var util = require('merged-pooler/lib/util.js');
 
 var api = require('./api.js');
+var validation = require('./validation.js');
 
 
 module.exports = function(logger){
@@ -273,17 +274,77 @@ module.exports = function(logger){
     app.get('/', route);
 
     app.get('/api/:method', function(req, res, next){
+        // Validate method parameter
+        var method = req.params.method;
+        var methodError = validation.validateString(method, 'method', { 
+            minLength: 1, 
+            maxLength: 50, 
+            pattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/ 
+        });
+        if (methodError) {
+            return res.status(400).json(validation.createError(methodError));
+        }
         portalApi.handleApiRequest(req, res, next);
+    });
+
+    // Health check endpoint
+    app.get('/health', function(req, res) {
+        res.json({
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            version: require('../package.json').version
+        });
+    });
+
+    // Metrics endpoint (Prometheus-compatible)
+    app.get('/metrics', function(req, res) {
+        var mem = process.memoryUsage();
+        var metrics = [
+            '# HELP nodejs_memory_heap_used_bytes Process heap memory used',
+            '# TYPE nodejs_memory_heap_used_bytes gauge',
+            'nodejs_memory_heap_used_bytes ' + mem.heapUsed,
+            '# HELP nodejs_memory_heap_total_bytes Process heap memory total',
+            '# TYPE nodejs_memory_heap_total_bytes gauge',
+            'nodejs_memory_heap_total_bytes ' + mem.heapTotal,
+            '# HELP nodejs_uptime_seconds Process uptime in seconds',
+            '# TYPE nodejs_uptime_seconds gauge',
+            'nodejs_uptime_seconds ' + process.uptime(),
+            '# HELP nodejs_version_info Node.js version info',
+            '# TYPE nodejs_version_info gauge',
+            'nodejs_version_info{version="' + process.version + '"} 1'
+        ];
+        res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+        res.send(metrics.join('\n') + '\n');
     });
 
     app.post('/api/admin/:method', function(req, res, next){
         if (portalConfig.website
             && portalConfig.website.adminCenter
             && portalConfig.website.adminCenter.enabled){
-            if (portalConfig.website.adminCenter.password === req.body.password)
+            
+            // Validate password input
+            var password = req.body && req.body.password;
+            var passwordError = validation.validateString(password, 'password', { minLength: 1, maxLength: 100 });
+            if (passwordError) {
+                return res.status(400).json(validation.createError(passwordError));
+            }
+            
+            // Constant-time comparison to prevent timing attacks
+            var expectedPassword = portalConfig.website.adminCenter.password;
+            var providedPassword = password || '';
+            var match = expectedPassword.length === providedPassword.length;
+            for (var i = 0; i < expectedPassword.length; i++) {
+                if (expectedPassword.charCodeAt(i) !== providedPassword.charCodeAt(i)) {
+                    match = false;
+                }
+            }
+            
+            if (match)
                 portalApi.handleAdminApiRequest(req, res, next);
             else
-                res.send(401, JSON.stringify({error: 'Incorrect Password'}));
+                res.status(401).json(validation.createError('Incorrect Password', 'AUTH_ERROR', 401));
 
         }
         else

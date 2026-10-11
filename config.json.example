@@ -1,6 +1,8 @@
 {
     "logLevel": "debug",
     "logColors": true,
+    "logJson": false,
+    "logFile": null,
 
     "cliPort": 17117,
 
@@ -46,7 +48,7 @@
         },
         "adminCenter": {
             "enabled": true,
-            "password": "password"
+            "password": "${WEBSITE_ADMIN_PASSWORD}"
         }
     },
 
